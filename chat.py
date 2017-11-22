@@ -1,7 +1,9 @@
 from flask import Flask, request, render_template, session, redirect, url_for, escape
+from textblob import TextBlob
+from toolz import interleave
 import datetime
 import random
-from textblob import TextBlob
+import itertools
 
 app = Flask(__name__)
 
@@ -34,25 +36,24 @@ def find_pronoun(sent):
     pronoun = None
 
     for word, part_of_speech in sent.pos_tags:
-        # Disambiguate pronouns
         if part_of_speech == 'PRP' and word.lower() == 'you':
             pronoun = 'I'
         elif part_of_speech == 'PRP' and word == 'I':
-            # If the user mentioned themselves, then they will definitely be the pronoun
             pronoun = 'You'
     return pronoun
 
 @app.route('/chat_bot/logout')
 def logout():
-   # remove the username from the session if it is there
    session.pop('user', None)
+   session.pop('chat_in', None)
+   session.pop('chat', None)
+   session.pop('chat_out', None)
    return redirect(url_for('get_login'))
 
 @app.route('/chat_bot/get_login', methods = ['GET', 'POST'])
 def get_login():
    if request.method == 'POST':
       session['user'] = request.form['user']
-      session['chat_in'] = "<br>"
       return redirect(url_for('chat'))
    return '''
    <html><head>
@@ -69,7 +70,6 @@ def get_login():
 def login():
     if 'user' in session:
         username = session['user']
-#        session['chat_in'] = "<br>"
         return 'Logged in as ' + username + '<br>' + \
         "<b><a href = '/chat_bot/logout'>click here to log out</a></b>"
     return "You are not logged in <br><a href = '/chat_bot/get_login'></b>" + \
@@ -80,17 +80,19 @@ def chat():
     if not 'user' in session:
         return "You are not logged in <br><a href = '/chat_bot/get_login'></b>" + \
         "click here to log in</b></a>"
+    if not 'chat_in' in session:
+        session['chat_in'] = []
     username = session['user']
     status = 'Hello, ' + username + '! <br>' + \
     "<b><a href = '/chat_bot/logout'>click here to log out</a></b>"
     if request.method == 'POST':
         chat_input = TextBlob(request.form['chat_input'])
         out_text = output(chat_input)
-        session['chat_in'] = session['chat_in'] + "<br>" + str(request.form['chat_input'])
+        session['chat_in'].append(str(request.form['chat_input']))
     else:
         out_text = "Hello, " + username + "! My name is Chatter. It is Nice to meet you!"
         chat_out = out_text
-        session['chat_out'] = "<br>"
+        session['chat_out'] = []
 
     if 'chat_input' in locals():
       chat_out = master(chat_input)
@@ -107,19 +109,25 @@ def chat():
       elif chat_focus == "You" and chat_input.sentiment.polarity == 0:
           chat_out = chat_focus + random.choice(ugly_response)
       elif chat_input.sentiment.polarity < 0:
-          chat_out = "I am sorry to hear that. What can I do to help?  " #+ str(chat_input.sentiment.polarity)
+          chat_out = "I am sorry to hear that. What can I do to help?  "
       elif chat_input.sentiment.polarity > 0:
-          chat_out = "i am so glad to hear that! What else can I help you with?  " #+ str(chat_input.sentiment.polarity)
+          chat_out = "i am so glad to hear that! What else can I help you with?  "
       else:
           chat_out = "I dont know what to say"
 
-    session['chat_out'] = session['chat_out'] + '<br>' + chat_out
+    session['chat_out'].append(chat_out)
+
+    session.modified = True
+
+    chat_text = list(interleave([session['chat_out'],session['chat_in']]))
+    chat_text.reverse()
     now = datetime.datetime.now()
     timeString = now.strftime("%Y-%m-%d %H:%M")
     templateData = {
     'user_status' : status,
     'chat_output' : session['chat_out'],
     'chat_input' : session['chat_in'],
+    'chat' : chat_text,
     'time': timeString,
     }
 
