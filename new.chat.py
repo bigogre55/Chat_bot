@@ -9,6 +9,7 @@ app = Flask(__name__)
 
 app.secret_key = '9ec32eef84e19d677476502b91cfa1d604f4717354782a5d1a0d28a16ce7909383b4c6d87fa71834d3e6246691b28d75cd915f6a717f58671b843d140c3bf6ed'
 
+login_error = "Please enter a valid username. it can be anything, but it has to be something"
 greeting_input = ('hello','hey','hi',"what's up",'greetings','aloha')
 greeting_output = ("'sup bro",'hey','*nods*',"yo!",'hi','greetings friend')
 ugly_response = (" feel the same way",
@@ -53,18 +54,11 @@ def logout():
 @app.route('/chat_bot/get_login', methods = ['GET', 'POST'])
 def get_login():
    if request.method == 'POST':
+      if request.form['user'] == "":
+        return render_template("login.html",error=login_error)
       session['user'] = request.form['user']
       return redirect(url_for('chat'))
-   return '''
-   <html><head>
-   <title>Chat_Bot</title></head><body>
-   <p>Enter a username</p>
-   <form action = "" method = "post">
-      <p><input type = text name = 'user' autofocus/></p>
-      <p><input type = submit value = 'Login'/></p>
-   </form>
-   </body></html>
-   '''
+   return render_template("login.html")
 
 @app.route('/chat_bot', methods=['GET', 'POST'])
 def login():
@@ -72,14 +66,12 @@ def login():
         username = session['user']
         return 'Logged in as ' + username + '<br>' + \
         "<b><a href = '/chat_bot/logout'>click here to log out</a></b>"
-    return "You are not logged in <br><a href = '/chat_bot/get_login'></b>" + \
-      "click here to log in</b></a>"
+    return render_template("nologin.html")
 
 @app.route('/chat_bot/chat', methods=['GET','POST'])
 def chat():
     if not 'user' in session:
-        return "You are not logged in <br><a href = '/chat_bot/get_login'></b>" + \
-        "click here to log in</b></a>"
+        return render_template("nologin.html")
     if not 'chat_in' in session:
         session['chat_in'] = []
     username = session['user']

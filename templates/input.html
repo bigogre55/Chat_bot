@@ -5,28 +5,17 @@
 #chat {
     width: 25%;
     height: 25%;
-
     position: absolute;
     top:0;
     bottom: 0;
     left: 0;
     right: 0;
-
     margin: auto;
 }
 #info {
     float: right;
     margin-right: 10px;
     margin-top: 10px
-}
-#bot_text {
-    text-align: right;
-    float: right;
-    width: 50%
-}
-#user_text {
-    text-align: left;
-    width: 50%
 }
 </style>
 <title>Jakes' Chat Bot</title>
@@ -42,11 +31,6 @@
 input: <input type="text" name="chat_input" autofocus><input type="submit"><br>
 </form>
 <p>{{ check }}</p>
-<!-- <div id="bot_text"> -->
-{# {{ chat_output|safe }} #}
-<!-- </div> -->
-<!-- <div id="user_text"> -->
-{# {{ chat_input|safe }} #}
 {% for item in chat %}
     <div width=100%><p>{{ item }}</p></div>
 {% endfor %}
