@@ -32,9 +32,13 @@ NONE_RESPONSES = ("What a nice day it is",
 master_is = "I am owned by Jake The Ogre"
 
 FILTER_WORDS = json.load(open('lib/badwords.json'))
+
 #-----------------------------------------
 
-class UnacceptableUtteranceException(Exception):
+class UnacceptableUtteranceException_lang(Exception):
+    """Raise this (uncaught) exception if the response was going to trigger our blacklist"""
+    pass
+class UnacceptableUtteranceException_code(Exception):
     """Raise this (uncaught) exception if the response was going to trigger our blacklist"""
     pass
 
@@ -77,11 +81,11 @@ def filter_response(resp):
     """Don't allow any words to match our filter list"""
     tokenized = resp.split(' ')
     for word in tokenized:
-        if '@' in word or '#' in word or '!' in word:
-            raise UnacceptableUtteranceException()
+        if '@' in word or '#' in word:
+            raise UnacceptableUtteranceException_code()
         for s in FILTER_WORDS:
             if word.lower().startswith(s):
-                raise UnacceptableUtteranceException()
+                raise UnacceptableUtteranceException_lang()
 
 def check_for_comment_about_bot(pronoun, noun, adjective):
     """Check if the user's input was about the bot itself, in which case try to fashion a response
@@ -149,6 +153,9 @@ def respond(sentence):
   # If we just greeted the bot, we'll use a return greeting
   if not resp: resp = greeting_check(parsed)
   if not resp:
+    if request.method == 'GET':
+      resp = "Hello, " + session['user'] + "! My name is Chatter. It is Nice to meet you!"
+  if not resp:
     # If we didn't override the final sentence, try to construct a new one:
     if not pronoun:
       resp = random.choice(NONE_RESPONSES)
@@ -159,7 +166,7 @@ def respond(sentence):
 
   # If we got through all that with nothing, use a random response
   if not resp:
-    resp = random.choice(NONE_RESPONSES)
+      resp = random.choice(NONE_RESPONSES)
 
   logger.info("Returning phrase '%s'", resp)
   # Check that we're not going to say anything obviously offensive
